@@ -45,7 +45,7 @@ def _build_parser() -> argparse.ArgumentParser:
     estimate.add_argument("--calls", type=int, default=1)
 
     report = subparsers.add_parser("report", parents=[global_opts], help="cost of a JSONL usage log")
-    report.add_argument("path")
+    report.add_argument("path", nargs="?", default="-", help="usage log path, or - to read stdin (default)")
     report.add_argument("--group-by", default="model")
     report.add_argument("--strict", action="store_true", help="fail instead of skipping malformed lines")
 
@@ -92,11 +92,14 @@ def _run_estimate(args, table) -> int:
 
 
 def _run_report(args, table) -> int:
-    try:
-        with open(args.path, "r", encoding="utf-8") as handle:
-            text = handle.read()
-    except OSError as exc:
-        raise OSError(f"cannot read {args.path}: {exc.strerror}") from exc
+    if args.path == "-":
+        text = sys.stdin.read()
+    else:
+        try:
+            with open(args.path, "r", encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError as exc:
+            raise OSError(f"cannot read {args.path}: {exc.strerror}") from exc
 
     records, problems = load_usage(text, strict=args.strict)
     report = build_report(records, table, group_by=args.group_by)

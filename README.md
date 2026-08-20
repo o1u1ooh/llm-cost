@@ -92,6 +92,12 @@ TOTAL       5  262,600  128,000  16,820  $0.5600
 Malformed lines are listed and skipped so one bad row cannot lose a month of
 data. Use `--strict` in CI to fail instead.
 
+Omit the path, or pass `-`, to read the log from stdin:
+
+```bash
+kubectl logs deploy/api | grep usage_event | llm-cost report --group-by team
+```
+
 ### Compare models
 
 ```console

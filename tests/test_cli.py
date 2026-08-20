@@ -1,3 +1,4 @@
+import io
 import json
 
 from llm_cost.cli import main
@@ -45,6 +46,29 @@ def test_report_json_over_a_written_log(tmp_path, capsys):
     data = json.loads(out)
     assert data["total_calls"] == 2
     assert data["rows"][0]["key"] == "claude-opus-5"
+
+
+def test_report_reads_stdin_when_path_omitted(monkeypatch, capsys):
+    log = (
+        '{"model":"claude-opus-5","usage":{"input_tokens":1000,"output_tokens":100}}\n'
+        '{"model":"claude-opus-5","usage":{"input_tokens":2000,"output_tokens":200}}\n'
+    )
+    monkeypatch.setattr("sys.stdin", io.StringIO(log))
+    code = main(["report", "--json"])
+    out = capsys.readouterr().out
+    assert code == 0
+    data = json.loads(out)
+    assert data["total_calls"] == 2
+
+
+def test_report_reads_stdin_when_path_is_dash(monkeypatch, capsys):
+    log = '{"model":"claude-opus-5","usage":{"input_tokens":1000,"output_tokens":100}}\n'
+    monkeypatch.setattr("sys.stdin", io.StringIO(log))
+    code = main(["report", "-", "--json"])
+    out = capsys.readouterr().out
+    assert code == 0
+    data = json.loads(out)
+    assert data["total_calls"] == 1
 
 
 def test_report_pricing_override_flag_works_before_and_after_subcommand(tmp_path, capsys):
