@@ -1,6 +1,14 @@
 import pytest
 
-from llm_cost import build_report, compare_models, default_pricing, load_usage, parse_pricing, render_table
+from llm_cost import (
+    build_report,
+    compare_models,
+    default_pricing,
+    filter_by_date_range,
+    load_usage,
+    parse_pricing,
+    render_table,
+)
 
 
 def test_build_report_groups_by_model_and_sums_costs():
@@ -66,6 +74,34 @@ def test_compare_models_filters_by_provider():
     rows = compare_models(table, input_tokens=10_000, output_tokens=1_000, provider="anthropic")
     assert rows
     assert all(row.provider == "anthropic" for row in rows)
+
+
+def test_filter_by_date_range_keeps_only_records_inside_the_window():
+    text = "\n".join([
+        '{"model":"claude-opus-5","date":"2026-05-31T23:00:00Z","usage":{"input_tokens":100,"output_tokens":10}}',
+        '{"model":"claude-opus-5","date":"2026-06-01T09:00:00Z","usage":{"input_tokens":100,"output_tokens":10}}',
+        '{"model":"claude-opus-5","date":"2026-06-15T09:00:00Z","usage":{"input_tokens":100,"output_tokens":10}}',
+        '{"model":"claude-opus-5","date":"2026-07-01T09:00:00Z","usage":{"input_tokens":100,"output_tokens":10}}',
+    ])
+    records, problems = load_usage(text)
+    assert not problems
+
+    kept = filter_by_date_range(records, since="2026-06-01", until="2026-06-30")
+    assert [r.fields["date"][:10] for r in kept] == ["2026-06-01", "2026-06-15"]
+
+
+def test_filter_by_date_range_drops_undated_records_once_a_bound_is_set():
+    text = '{"model":"claude-opus-5","usage":{"input_tokens":100,"output_tokens":10}}'
+    records, problems = load_usage(text)
+    assert not problems
+
+    assert filter_by_date_range(records, since="2026-06-01") == []
+    assert filter_by_date_range(records) == records
+
+
+def test_filter_by_date_range_rejects_malformed_bounds():
+    with pytest.raises(ValueError):
+        filter_by_date_range([], since="not-a-date")
 
 
 def test_render_table_right_aligns_numeric_columns():

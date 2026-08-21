@@ -92,6 +92,15 @@ TOTAL       5  262,600  128,000  16,820  $0.5600
 Malformed lines are listed and skipped so one bad row cannot lose a month of
 data. Use `--strict` in CI to fail instead.
 
+Narrow to a window with `--since` / `--until` (inclusive, `YYYY-MM-DD`,
+either or both). Records need a top-level `date` field to be considered;
+records without one are dropped once a bound is set, since there is no date
+to compare:
+
+```bash
+llm-cost report usage.jsonl --since 2026-06-01 --until 2026-06-30
+```
+
 Omit the path, or pass `-`, to read the log from stdin:
 
 ```bash
@@ -188,6 +197,7 @@ report.unknown_models   # {'internal-router-v3'}
 | `PricingTable.resolve(name)` | Name resolution, raises `UnknownModelError` |
 | `estimate_cost(price, ...)` | Cost of one call or `calls` identical calls |
 | `load_usage(text, strict=False)` | Parse JSONL into records plus problems |
+| `filter_by_date_range(records, since=None, until=None)` | Keep records with a `date` field inside `[since, until]` |
 | `build_report(records, table, group_by=...)` | Aggregate and cost a log |
 | `compare_models(table, input, output, ...)` | Rank models cheapest first |
 | `render_table(headers, rows)` | The aligned table renderer |

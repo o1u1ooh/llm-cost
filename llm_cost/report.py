@@ -4,6 +4,7 @@ render the aligned tables both the estimate and report commands print."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date as _date
 
 from .cost import estimate_cost
 from .pricing import UnknownModelError
@@ -42,6 +43,33 @@ def _group_key(record, group_by: str) -> str:
         return date[:10] if date else "unknown"
     value = record.fields.get(group_by)
     return str(value) if value is not None else "unknown"
+
+
+def filter_by_date_range(records, *, since: str = None, until: str = None):
+    """Keep only records whose 'date' field falls within [since, until]
+    (inclusive, YYYY-MM-DD). Records with no date are dropped whenever a
+    bound is given, since they cannot be placed inside or outside the range.
+    `since` and `until` are validated as ISO dates so a typo fails loudly
+    instead of silently matching nothing."""
+    if since is None and until is None:
+        return records
+
+    if since is not None:
+        _date.fromisoformat(since)
+    if until is not None:
+        _date.fromisoformat(until)
+
+    kept = []
+    for record in records:
+        day = (record.fields.get("date") or "")[:10]
+        if not day:
+            continue
+        if since is not None and day < since:
+            continue
+        if until is not None and day > until:
+            continue
+        kept.append(record)
+    return kept
 
 
 def build_report(records, table, *, group_by: str = "model") -> Report:

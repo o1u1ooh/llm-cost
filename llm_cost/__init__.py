@@ -8,7 +8,15 @@ from .pricing import (
     load_pricing,
     parse_pricing,
 )
-from .report import ComparisonRow, Report, ReportRow, build_report, compare_models, render_table
+from .report import (
+    ComparisonRow,
+    Report,
+    ReportRow,
+    build_report,
+    compare_models,
+    filter_by_date_range,
+    render_table,
+)
 from .usage import UsageFormatError, UsageProblem, UsageRecord, load_usage
 
 __all__ = [
@@ -26,6 +34,7 @@ __all__ = [
     "ReportRow",
     "build_report",
     "compare_models",
+    "filter_by_date_range",
     "render_table",
     "UsageFormatError",
     "UsageProblem",

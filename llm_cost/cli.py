@@ -9,7 +9,7 @@ import sys
 from .pricing import PricingError, UnknownModelError, default_pricing, load_pricing
 from .cost import estimate_cost
 from .usage import UsageFormatError, load_usage
-from .report import build_report, compare_models, render_table
+from .report import build_report, compare_models, filter_by_date_range, render_table
 
 
 def _fmt_int(n: int) -> str:
@@ -48,6 +48,8 @@ def _build_parser() -> argparse.ArgumentParser:
     report.add_argument("path", nargs="?", default="-", help="usage log path, or - to read stdin (default)")
     report.add_argument("--group-by", default="model")
     report.add_argument("--strict", action="store_true", help="fail instead of skipping malformed lines")
+    report.add_argument("--since", help="only include records with a 'date' on or after this (YYYY-MM-DD)")
+    report.add_argument("--until", help="only include records with a 'date' on or before this (YYYY-MM-DD)")
 
     compare = subparsers.add_parser("compare", parents=[global_opts], help="rank models by cost for a fixed workload")
     compare.add_argument("--input", type=int, required=True)
@@ -102,6 +104,7 @@ def _run_report(args, table) -> int:
             raise OSError(f"cannot read {args.path}: {exc.strerror}") from exc
 
     records, problems = load_usage(text, strict=args.strict)
+    records = filter_by_date_range(records, since=args.since, until=args.until)
     report = build_report(records, table, group_by=args.group_by)
 
     if args.json:

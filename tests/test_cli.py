@@ -71,6 +71,28 @@ def test_report_reads_stdin_when_path_is_dash(monkeypatch, capsys):
     assert data["total_calls"] == 1
 
 
+def test_report_since_until_narrows_to_the_date_window(tmp_path, capsys):
+    log = tmp_path / "usage.jsonl"
+    log.write_text(
+        '{"model":"claude-opus-5","date":"2026-05-01","usage":{"input_tokens":1000,"output_tokens":100}}\n'
+        '{"model":"claude-opus-5","date":"2026-06-15","usage":{"input_tokens":2000,"output_tokens":200}}\n'
+    )
+    code = main(["report", str(log), "--since", "2026-06-01", "--until", "2026-06-30", "--json"])
+    out = capsys.readouterr().out
+    assert code == 0
+    data = json.loads(out)
+    assert data["total_calls"] == 1
+    assert data["rows"][0]["input_tokens"] == 2000
+
+
+def test_report_bad_since_exits_2(tmp_path, capsys):
+    log = tmp_path / "usage.jsonl"
+    log.write_text('{"model":"claude-opus-5","usage":{"input_tokens":1000,"output_tokens":100}}\n')
+    code = main(["report", str(log), "--since", "not-a-date"])
+    err = capsys.readouterr().err
+    assert code == 2
+
+
 def test_report_pricing_override_flag_works_before_and_after_subcommand(tmp_path, capsys):
     log = tmp_path / "usage.jsonl"
     log.write_text('{"model":"internal-router-v3","usage":{"input_tokens":1000,"output_tokens":100}}\n')
