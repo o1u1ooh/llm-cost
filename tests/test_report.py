@@ -104,6 +104,14 @@ def test_filter_by_date_range_rejects_malformed_bounds():
         filter_by_date_range([], since="not-a-date")
 
 
+def test_render_table_right_aligns_non_usd_currency_columns():
+    text = render_table(["item", "cost"], [["input", "€0.06"], ["total", "€12.50"]])
+    lines = text.splitlines()
+    header, separator, *body = lines
+    assert body[1].endswith("€12.50")
+    assert len(body[0]) == len(body[1])
+
+
 def test_render_table_right_aligns_numeric_columns():
     text = render_table(["item", "tokens"], [["input", "12,000"], ["total", "800"]])
     lines = text.splitlines()

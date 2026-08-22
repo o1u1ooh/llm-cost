@@ -3,6 +3,7 @@ render the aligned tables both the estimate and report commands print."""
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date as _date
 
@@ -157,8 +158,11 @@ def compare_models(table, input_tokens: int, output_tokens: int, *, provider=Non
     ]
 
 
+_CURRENCY_PREFIX_RE = re.compile(r"^([$€£¥]|[A-Z]{3} )")
+
+
 def _is_numeric_cell(cell: str) -> bool:
-    stripped = cell.replace(",", "").replace("$", "")
+    stripped = _CURRENCY_PREFIX_RE.sub("", cell.replace(",", ""))
     if stripped.endswith("x"):
         stripped = stripped[:-1]
     if stripped in ("", "-"):

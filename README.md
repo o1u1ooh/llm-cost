@@ -164,6 +164,26 @@ empty table so an unlisted model raises instead of pricing against a stale
 default. `cached_input` and `cache_write` fall back to the input price when
 omitted, which over-states rather than under-states the bill.
 
+If your negotiated rates aren't in USD, set `currency` (an ISO code; `$`,
+`€`, `£` and `¥` render as symbols, anything else prints as `"CODE "`) and
+optionally `precision` (decimal places for rendered amounts, default 4 —
+useful for a currency like JPY where sub-unit cost differences are noise):
+
+```json
+{
+  "currency": "EUR",
+  "precision": 2,
+  "replace": true,
+  "models": {
+    "claude-opus-5": { "input": 4.6, "output": 23.0 }
+  }
+}
+```
+
+Both apply to the whole table, so set `"replace": true` alongside them —
+otherwise the untouched built-in entries stay priced in USD while the rest
+of the table is labelled and rendered in the new currency.
+
 ## Exit codes
 
 | Code | Meaning |

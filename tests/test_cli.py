@@ -120,6 +120,31 @@ def test_compare_orders_cheapest_first(capsys):
     assert costs == sorted(costs)
 
 
+def test_estimate_with_non_usd_pricing_uses_symbol_and_precision(tmp_path, capsys):
+    prices = tmp_path / "eur.json"
+    prices.write_text(json.dumps({
+        "currency": "EUR",
+        "precision": 2,
+        "replace": True,
+        "models": {"claude-opus-5": {"input": 4.0, "output": 20.0}},
+    }))
+    code = main(["--pricing", str(prices), "estimate", "--model", "claude-opus-5", "--input", "1000", "--output", "0"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "€0.00" in out
+    assert "cost per call: €0.00" in out
+
+
+def test_estimate_json_includes_currency(tmp_path, capsys):
+    prices = tmp_path / "jpy.json"
+    prices.write_text(json.dumps({"currency": "JPY", "precision": 0}))
+    code = main(["--pricing", str(prices), "estimate", "--model", "claude-opus-5", "--input", "1000", "--output", "0", "--json"])
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert code == 0
+    assert data["currency"] == "JPY"
+
+
 def test_models_lists_the_built_in_table(capsys):
     code = main(["models"])
     out = capsys.readouterr().out

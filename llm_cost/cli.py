@@ -20,8 +20,8 @@ def _fmt_price(p: float) -> str:
     return f"{p:.2f}"
 
 
-def _fmt_money(x: float) -> str:
-    return f"${x:.4f}"
+def _fmt_money(x: float, table) -> str:
+    return f"{table.symbol}{x:.{table.precision}f}"
 
 
 def _plural(n: int) -> str:
@@ -75,21 +75,23 @@ def _run_estimate(args, table) -> int:
     )
 
     if args.json:
-        print(json.dumps(result.to_dict(), indent=2))
+        data = result.to_dict()
+        data["currency"] = table.currency
+        print(json.dumps(data, indent=2))
         return 0
 
     print(f"{price.name}  ({args.calls} call{_plural(args.calls)}, prices as of {table.as_of})")
     print()
     rows = [
-        ["input", _fmt_int(result.input_tokens), _fmt_price(price.input), _fmt_money(result.input_cost)],
-        ["cached input", _fmt_int(result.cached_input_tokens), _fmt_price(price.cached_input), _fmt_money(result.cached_input_cost)],
-        ["cache write", _fmt_int(result.cache_write_tokens), _fmt_price(price.cache_write), _fmt_money(result.cache_write_cost)],
-        ["output", _fmt_int(result.output_tokens), _fmt_price(price.output), _fmt_money(result.output_cost)],
-        ["total", _fmt_int(result.input_tokens + result.output_tokens), "", _fmt_money(result.total_cost)],
+        ["input", _fmt_int(result.input_tokens), _fmt_price(price.input), _fmt_money(result.input_cost, table)],
+        ["cached input", _fmt_int(result.cached_input_tokens), _fmt_price(price.cached_input), _fmt_money(result.cached_input_cost, table)],
+        ["cache write", _fmt_int(result.cache_write_tokens), _fmt_price(price.cache_write), _fmt_money(result.cache_write_cost, table)],
+        ["output", _fmt_int(result.output_tokens), _fmt_price(price.output), _fmt_money(result.output_cost, table)],
+        ["total", _fmt_int(result.input_tokens + result.output_tokens), "", _fmt_money(result.total_cost, table)],
     ]
-    print(render_table(["item", "tokens", "$/1M", "cost"], rows))
+    print(render_table(["item", "tokens", f"{table.currency}/1M", "cost"], rows))
     print()
-    print(f"cost per call: {_fmt_money(result.cost_per_call)}")
+    print(f"cost per call: {_fmt_money(result.cost_per_call, table)}")
     return 0
 
 
@@ -111,6 +113,7 @@ def _run_report(args, table) -> int:
         print(json.dumps(
             {
                 "group_by": report.group_by,
+                "currency": table.currency,
                 "rows": [
                     {
                         "key": row.key,
@@ -133,7 +136,7 @@ def _run_report(args, table) -> int:
         ))
         return 0
 
-    headers = [args.group_by, "calls", "input", "cached", "output", "cost", "$/call"]
+    headers = [args.group_by, "calls", "input", "cached", "output", "cost", f"{table.symbol}/call"]
     rows = [
         [
             row.key,
@@ -141,8 +144,8 @@ def _run_report(args, table) -> int:
             _fmt_int(row.input_tokens),
             _fmt_int(row.cached_input_tokens),
             _fmt_int(row.output_tokens),
-            _fmt_money(row.cost),
-            _fmt_money(row.cost / row.calls),
+            _fmt_money(row.cost, table),
+            _fmt_money(row.cost / row.calls, table),
         ]
         for row in report.rows
     ]
@@ -152,7 +155,7 @@ def _run_report(args, table) -> int:
         _fmt_int(report.total_input_tokens),
         _fmt_int(report.total_cached_input_tokens),
         _fmt_int(report.total_output_tokens),
-        _fmt_money(report.total_cost),
+        _fmt_money(report.total_cost, table),
         "",
     ])
     print(render_table(headers, rows))
@@ -184,6 +187,7 @@ def _run_compare(args, table) -> int:
                 "output_price": row.output_price,
                 "cost": round(row.cost, 6),
                 "vs_cheapest": round(row.vs_cheapest, 4),
+                "currency": table.currency,
             }
             for row in rows
         ], indent=2))
@@ -192,10 +196,10 @@ def _run_compare(args, table) -> int:
     print(f"{_fmt_int(args.input)} in + {_fmt_int(args.output)} out, {args.calls} call{_plural(args.calls)}, prices as of {table.as_of}")
     print()
     table_rows = [
-        [row.model, row.provider, _fmt_price(row.input_price), _fmt_price(row.output_price), _fmt_money(row.cost), f"{row.vs_cheapest:.1f}x"]
+        [row.model, row.provider, _fmt_price(row.input_price), _fmt_price(row.output_price), _fmt_money(row.cost, table), f"{row.vs_cheapest:.1f}x"]
         for row in rows
     ]
-    print(render_table(["model", "provider", "$/1M in", "$/1M out", "cost", "vs cheapest"], table_rows))
+    print(render_table(["model", "provider", f"{table.currency}/1M in", f"{table.currency}/1M out", "cost", "vs cheapest"], table_rows))
     return 0
 
 
@@ -205,20 +209,23 @@ def _run_models(args, table) -> int:
     if args.json:
         print(json.dumps(
             {
-                name: {
-                    "provider": table.models[name].provider,
-                    "input": table.models[name].input,
-                    "output": table.models[name].output,
-                    "cached_input": table.models[name].cached_input,
-                    "cache_write": table.models[name].cache_write,
-                }
-                for name in names
+                "currency": table.currency,
+                "models": {
+                    name: {
+                        "provider": table.models[name].provider,
+                        "input": table.models[name].input,
+                        "output": table.models[name].output,
+                        "cached_input": table.models[name].cached_input,
+                        "cache_write": table.models[name].cache_write,
+                    }
+                    for name in names
+                },
             },
             indent=2,
         ))
         return 0
 
-    print(f"{len(names)} models, USD per 1M tokens, as of {table.as_of} (source: {table.source})")
+    print(f"{len(names)} models, {table.currency} per 1M tokens, as of {table.as_of} (source: {table.source})")
     print()
     rows = [
         [

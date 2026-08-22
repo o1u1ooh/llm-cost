@@ -77,3 +77,42 @@ def test_parse_pricing_rejects_non_object():
 def test_parse_pricing_rejects_entry_missing_prices():
     with pytest.raises(PricingError):
         parse_pricing({"models": {"broken-model": {"provider": "internal"}}})
+
+
+def test_default_pricing_is_usd_with_default_precision():
+    table = default_pricing()
+    assert table.currency == "USD"
+    assert table.precision == 4
+    assert table.symbol == "$"
+
+
+def test_parse_pricing_honours_currency_and_precision():
+    table = parse_pricing({
+        "currency": "EUR",
+        "precision": 2,
+        "replace": True,
+        "models": {"claude-opus-5": {"input": 4.6, "output": 23.0}},
+    })
+    assert table.currency == "EUR"
+    assert table.precision == 2
+    assert table.symbol == "€"
+
+
+def test_parse_pricing_unknown_currency_renders_as_code_prefix():
+    table = parse_pricing({"currency": "CHF"})
+    assert table.symbol == "CHF "
+
+
+def test_parse_pricing_rejects_empty_currency():
+    with pytest.raises(PricingError):
+        parse_pricing({"currency": ""})
+
+
+def test_parse_pricing_rejects_negative_precision():
+    with pytest.raises(PricingError):
+        parse_pricing({"precision": -1})
+
+
+def test_parse_pricing_rejects_non_integer_precision():
+    with pytest.raises(PricingError):
+        parse_pricing({"precision": 2.5})

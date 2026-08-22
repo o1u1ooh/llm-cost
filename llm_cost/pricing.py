@@ -32,6 +32,9 @@ _BUILTIN_MODELS = {
 _PROVIDER_PREFIXES = ("anthropic", "openai", "google")
 _DATE_SUFFIX_RE = re.compile(r"-(\d{8}|\d{4}-\d{2}-\d{2})$")
 
+_CURRENCY_SYMBOLS = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥"}
+DEFAULT_PRECISION = 4
+
 
 class PricingError(Exception):
     """The pricing table or an override file could not be built."""
@@ -58,6 +61,14 @@ class PricingTable:
     models: dict
     as_of: str
     source: str
+    currency: str = "USD"
+    precision: int = DEFAULT_PRECISION
+
+    @property
+    def symbol(self) -> str:
+        """A short prefix for rendering an amount: a currency symbol for
+        currencies we know, otherwise the ISO code followed by a space."""
+        return _CURRENCY_SYMBOLS.get(self.currency, f"{self.currency} ")
 
     def resolve(self, name: str) -> ModelPrice:
         """Look up a model, tolerating a leading provider prefix and a
@@ -114,6 +125,14 @@ def parse_pricing(obj: dict, *, source: str = "override") -> PricingTable:
     if not isinstance(overrides, dict):
         raise PricingError("'models' must be a JSON object")
 
+    currency = obj.get("currency", "USD")
+    if not isinstance(currency, str) or not currency:
+        raise PricingError("'currency' must be a non-empty string")
+
+    precision = obj.get("precision", DEFAULT_PRECISION)
+    if not isinstance(precision, int) or isinstance(precision, bool) or precision < 0:
+        raise PricingError("'precision' must be a non-negative integer")
+
     base = {} if replace else {name: dict(data) for name, data in _BUILTIN_MODELS.items()}
 
     for name, data in overrides.items():
@@ -123,7 +142,7 @@ def parse_pricing(obj: dict, *, source: str = "override") -> PricingTable:
         merged.update(data)
         base[name] = merged
 
-    return PricingTable(models=_build_models(base), as_of=as_of, source=source)
+    return PricingTable(models=_build_models(base), as_of=as_of, source=source, currency=currency, precision=precision)
 
 
 def load_pricing(path: str) -> PricingTable:
