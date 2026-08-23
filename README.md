@@ -230,4 +230,4 @@ python -m pytest tests -q
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Copyright (c) 2026 markt50.
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 o1u1ooh.

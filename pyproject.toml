@@ -9,7 +9,7 @@ description = "Estimate and report LLM token costs from an overridable price tab
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "markt50" }]
+authors = [{ name = "o1u1ooh" }]
 keywords = ["llm", "tokens", "pricing", "cost", "finops", "openai", "anthropic"]
 classifiers = [
   "Development Status :: 4 - Beta",
