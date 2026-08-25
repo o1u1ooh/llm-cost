@@ -27,6 +27,18 @@ def test_estimate_unknown_model_exits_3(capsys):
     assert "not-a-real-model" in err
 
 
+def test_estimate_total_tokens_includes_cached_and_cache_write(capsys):
+    code = main([
+        "estimate", "--model", "claude-opus-5",
+        "--input", "12000", "--output", "800",
+        "--cached", "52000", "--cache-write", "9000",
+    ])
+    out = capsys.readouterr().out
+    assert code == 0
+    total_line = next(line for line in out.splitlines() if line.startswith("total"))
+    assert "73,800" in total_line
+
+
 def test_report_missing_file_exits_2(capsys):
     code = main(["report", "/tmp/does-not-exist-llm-cost.jsonl"])
     err = capsys.readouterr().err

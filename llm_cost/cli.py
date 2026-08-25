@@ -87,7 +87,12 @@ def _run_estimate(args, table) -> int:
         ["cached input", _fmt_int(result.cached_input_tokens), _fmt_price(price.cached_input), _fmt_money(result.cached_input_cost, table)],
         ["cache write", _fmt_int(result.cache_write_tokens), _fmt_price(price.cache_write), _fmt_money(result.cache_write_cost, table)],
         ["output", _fmt_int(result.output_tokens), _fmt_price(price.output), _fmt_money(result.output_cost, table)],
-        ["total", _fmt_int(result.input_tokens + result.output_tokens), "", _fmt_money(result.total_cost, table)],
+        [
+            "total",
+            _fmt_int(result.input_tokens + result.output_tokens + result.cached_input_tokens + result.cache_write_tokens),
+            "",
+            _fmt_money(result.total_cost, table),
+        ],
     ]
     print(render_table(["item", "tokens", f"{table.currency}/1M", "cost"], rows))
     print()
